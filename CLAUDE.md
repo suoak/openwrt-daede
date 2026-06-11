@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 OpenWrt all-in-one package: **dae** (kernel/core) + **daed** (companion) + **luci-app-daede** (LuCI management UI). Active work is the **luci-app-daede LuCI frontend**.
 
-- `dae/` and `daed/` Makefiles are **mirrored from upstream [kenzok8/wall](https://github.com/kenzok8/wall)** — do **not** edit them here. To change dae/daed packaging, edit `wall`; `scripts/sync-from-wall.sh` pulls them back.
+- This repo is the **upstream** for `dae`, `daed`, and `luci-app-daede`. They build from an aggressive pinned source (daeuniverse + olicesx perf forks mirrored to kenzok8), assembled into hosted `dae-src`/`daed-src` release tarballs and verified by `PKG_HASH`. Pins live in `ci/pins.env`; the assemble + auto-bump workflows manage them. Downstream feeds (wall/jell/small/small-package) consume dae/daed/luci-app-daede from here — `dae/`, `daed/` carry only `Makefile` + `files/`.
 - This repo's own development surface is `luci-app-daede/`.
 
 ## luci-app-daede architecture (the part you'll edit)

@@ -3,10 +3,6 @@
 <p align="center">OpenWrt 一体包：<b>dae</b> 内核 + <b>daed</b> 配套 + <b>luci-app-daede</b> 管理界面。</p>
 
 <p align="center">
-  <code>dae/</code> 与 <code>daed/</code> Makefile 来自上游 <a href="https://github.com/kenzok8/wall">kenzok8/wall</a>，本仓库仅做打包与 LuCI 前端开发。
-</p>
-
-<p align="center">
   <img src="https://raw.githubusercontent.com/kenzok8/kenzok8/main/screenshot/daede/dae-logo.png" height="88" alt="dae">
   &nbsp;&nbsp;&nbsp;
   <img src="https://raw.githubusercontent.com/daeuniverse/daed/main/apps/web/public/logo-rounded.png" height="88" alt="daed">
