@@ -688,6 +688,9 @@ msgstr ""
 msgid "Ignored info"
 msgstr ""
 
+msgid "No nodes to preview yet. Fetch or paste Clash YAML above."
+msgstr ""
+
 msgid "Group name"
 msgstr ""
 

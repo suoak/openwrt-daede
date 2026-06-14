@@ -307,6 +307,8 @@ return view.extend({
 					E('span', { 'class': 'dd-conv-result-state ' + resultClass, 'title': resultText }, resultText)
 				]));
 			});
+			if (!shown.length)
+				resultBody.appendChild(E('div', { 'class': 'dd-conv-empty' }, _('No nodes to preview yet. Fetch or paste Clash YAML above.')));
 
 			const compatible = state.results.filter(function(item) { return item.ok; }).length;
 			const unsupported = state.results.length - compatible;

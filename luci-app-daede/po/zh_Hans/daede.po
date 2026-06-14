@@ -896,6 +896,9 @@ msgstr "不兼容"
 msgid "Ignored info"
 msgstr "忽略信息"
 
+msgid "No nodes to preview yet. Fetch or paste Clash YAML above."
+msgstr "暂无可预览节点，请先在上方获取或粘贴 Clash YAML。"
+
 msgid "Group name"
 msgstr "组名"
 
