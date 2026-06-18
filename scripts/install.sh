@@ -169,6 +169,67 @@ verify_sha256() {
   echo "  sha256 ok: $(basename "$file")"
 }
 
+VMLINUX_BTF_API="${VMLINUX_BTF_API:-https://api.github.com/repos/kenzok8/vmlinux-btf/releases/tags/latest}"
+
+# dae/daed load CO-RE eBPF that needs kernel BTF: /sys/kernel/btf/vmlinux when the
+# kernel was built with CONFIG_DEBUG_INFO_BTF, else a packaged detached BTF.
+btf_available() {
+  [ -e /sys/kernel/btf/vmlinux ] && return 0
+  [ -e "/usr/lib/debug/boot/vmlinux-$(uname -r)" ] && return 0
+  return 1
+}
+
+# Fetch a vmlinux-btf matching this kernel + arch when the firmware ships no BTF.
+ensure_btf() {
+  pm="$1"; arch="$2"
+  if btf_available; then
+    echo "Kernel BTF present; dae/daed eBPF is ready."
+    return 0
+  fi
+
+  krel="$(uname -r)"
+  kmm="$(printf '%s' "$krel" | grep -Eo '^[0-9]+\.[0-9]+')"
+  kver="$(printf '%s' "$krel" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+')"
+  ext="ipk"; [ "$pm" = "apk" ] && ext="apk"
+
+  echo "Kernel BTF missing — dae/daed need it for eBPF. Looking for vmlinux-btf (${arch}, kernel ${kver:-$krel})..."
+
+  urls="$(fetch_text "$VMLINUX_BTF_API" \
+    | grep -Eo '"browser_download_url"[^,]*' \
+    | sed -E 's/.*"(https[^"]+)".*/\1/' \
+    | grep -E "/vmlinux-btf[^/]*\.${ext}$" \
+    | grep -F "$arch")"
+
+  url=""
+  [ -n "$urls" ] && [ -n "$kver" ] && url="$(printf '%s\n' "$urls" | grep -F "$kver" | head -n 1)"
+  [ -z "$url" ] && [ -n "$urls" ] && [ -n "$kmm" ] && url="$(printf '%s\n' "$urls" | grep -E "[_-]${kmm}\.[0-9]+" | head -n 1)"
+  [ -z "$url" ] && url="$(printf '%s\n' "$urls" | head -n 1)"
+
+  if [ -z "$url" ]; then
+    echo "[WARN] No vmlinux-btf for arch '${arch}', kernel '${krel}'. dae/daed will not start"
+    echo "       without kernel BTF. Reflash firmware with CONFIG_DEBUG_INFO_BTF, or build a"
+    echo "       matching package: https://github.com/kenzok8/vmlinux-btf"
+    return 1
+  fi
+
+  out="$TMP_DIR/vmlinux-btf.${ext}"
+  echo "Downloading $(basename "$url")..."
+  download_file "$(download_url "$url")" "$out" || { echo "[WARN] vmlinux-btf download failed."; return 1; }
+
+  echo "Installing vmlinux-btf..."
+  if [ "$pm" = "opkg" ]; then
+    opkg install "$out" || { echo "[WARN] vmlinux-btf install failed."; return 1; }
+  else
+    apk add --allow-untrusted "$out" || { echo "[WARN] vmlinux-btf install failed."; return 1; }
+  fi
+
+  if btf_available; then
+    echo "vmlinux-btf installed; kernel BTF now available."
+  else
+    echo "[WARN] vmlinux-btf installed but BTF still missing for kernel ${krel} (series mismatch?)."
+  fi
+}
+
 PM="$(detect_manager)"
 if [ "$PM" = "unsupported" ]; then
   echo "No supported package manager (opkg/apk)."
@@ -220,3 +281,6 @@ else
 fi
 
 echo "Install complete."
+
+# Supply kernel BTF if the firmware ships none, else dae/daed eBPF won't load.
+ensure_btf "$PM" "$ARCH" || true
