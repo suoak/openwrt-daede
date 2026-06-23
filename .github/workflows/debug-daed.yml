@@ -1,14 +1,20 @@
-name: Test daed build
+name: Debug daed build
 
-# Iteration-only: builds dae/daed for one arch and uploads the .apk as an artifact.
-# No feed upload, no release — safe to run on feature branches.
+# Strict single-arch build that uploads OpenWrt build logs so failures are
+# diagnosable (test-daed-build hides the real error without V=s).
 
 on:
   workflow_dispatch:
     inputs:
       packages:
         description: Packages to build
-        default: "dae daed"
+        default: "daed"
+      arch:
+        description: Arch
+        default: "x86_64"
+      sdk:
+        description: SDK version
+        default: "25.12"
 
 permissions:
   contents: read
@@ -16,19 +22,14 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x86_64, aarch64_generic]
-        sdk: ["24.10", "25.12"]
     steps:
       - uses: actions/checkout@v6
 
-      - name: Build packages
+      - name: Build (strict)
         uses: kenzok8/gh-action-sdk@hash
         env:
           CONTAINER: immortalwrt/sdk
-          ARCH: ${{ matrix.arch }}-openwrt-${{ matrix.sdk }}
+          ARCH: ${{ github.event.inputs.arch }}-openwrt-${{ github.event.inputs.sdk }}
           FEEDNAME: daede
           PACKAGES: ${{ github.event.inputs.packages }}
           EXTRA_FEEDS: src-git|wall|https://github.com/kenzok8/wall
@@ -40,16 +41,18 @@ jobs:
           GOLANG_REPO: https://github.com/kenzok8/golang
           GOLANG_BRANCH: '1.26'
 
-      - name: List built packages
+      - name: List output
         if: always()
-        run: ls -la bin/packages/${{ matrix.arch }}/daede/ 2>/dev/null || echo "no output dir"
+        run: |
+          ls -la bin/packages/${{ github.event.inputs.arch }}/daede/ 2>/dev/null || echo "no pkg dir"
+          find . -name '*.log' 2>/dev/null | head -50
 
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: pkgs-${{ matrix.arch }}-${{ matrix.sdk }}
+          name: debug-${{ github.event.inputs.arch }}-${{ github.event.inputs.sdk }}
           path: |
-            bin/packages/${{ matrix.arch }}/daede/*.apk
+            bin/packages/${{ github.event.inputs.arch }}/daede/*.apk
             logs/**
             *.log
             **/*.log
